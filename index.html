@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Chat UI</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f2f2f2;
+      }
+
+      .container {
+        display: flex;
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: #f2f2f2;
+      }
+
+      .sidebar {
+        flex: 1;
+        background-color: #075e54;
+        color: white;
+        padding: 20px;
+        min-width: 250px;
+      }
+
+      .chat {
+        flex: 3;
+        background-color: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+
+      .chat-header {
+        background-color: #075e54;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 18px;
+      }
+
+      .chat-messages {
+        flex-grow: 1;
+        overflow-y: scroll;
+        padding: 10px;
+      }
+
+      .message {
+        margin: 10px;
+        padding: 10px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+      }
+
+      .user-message {
+        background-color: #dcf8c6;
+      }
+
+      .sender-name {
+        font-weight: bold;
+      }
+
+      .input-container {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+      }
+
+      #messageInput {
+        flex-grow: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 25px;
+        outline: none;
+        background-color: #fff;
+      }
+
+      #sendMessageBtn {
+        background-color: #25d366;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        padding: 15px;
+        margin-left: 10px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Your Chats</h2>
+            <ul id="chatList">
+                <li data-chat="Chat 1">Chat 1</li>
+                <li data-chat="Chat 2">Chat 2</li>
+                <li data-chat="Chat 3">Chat 3</li>
+                <!-- Add more chat items as needed -->
+            </ul>
+        </div>
+        <div class="chat">
+            <div class="chat-header">Dyspatch AI</div>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="input-container">
+                <input type="text" id="messageInput" placeholder="Type a message...">
+                <button id="sendMessageBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById("chatMessages");
+        const messageInput = document.getElementById("messageInput");
+        const sendMessageBtn = document.getElementById("sendMessageBtn");
+        const chatList = document.getElementById("chatList");
+
+        let activeChat = null;
+
+        // Create a WebSocket connection
+        const socket = new WebSocket('ws://localhost:443/');
+
+        // Listen for WebSocket messages
+        socket.addEventListener("message", (event) => {
+            const message = JSON.parse(event.data);
+            console.log(message);
+            displayMessage(message);
+        });
+
+        // Function to display a message in the chat
+        function displayMessage(message) {
+            const messageDiv = document.createElement("div");
+            messageDiv.className = "message";
+            if (message.event === "messageSent") {
+                messageDiv.textContent = `${message.message.from}: ${message.message.body}`;
+                if (message.message.from === "You") {
+                    messageDiv.classList.add("user-message");
+                }
+            } else if (message.user == "user") {
+                messageDiv.textContent = `${message.from}: ${message.body}`;
+                messageDiv.classList.add("user-message");
+            } else {
+                messageDiv.textContent = "Unknown message type";
+            }
+            chatMessages.appendChild(messageDiv);
+        }
+
+        // Function to send a message via WebSocket
+        function sendMessage() {
+            const messageText = messageInput.value;
+            if (messageText.trim() === "") return;
+
+            const message = {
+                event: "sendMessage",
+                message: {
+                    messageId: "unique-id",
+                    from: "You",
+                    to: activeChat,
+                    body: messageText,
+                    dateTime: new Date().toISOString(),
+                    bodyContentType: "text/plain",
+                    languageTranslations: [],
+                },
+            };
+
+            socket.send(JSON.stringify(message));
+            displayMessage(message);
+
+            // Clear the input field
+            messageInput.value = "";
+        }
+
+        // Send a message when the Send button is clicked
+        sendMessageBtn.addEventListener("click", sendMessage);
+
+        // Send a message when the Enter key is pressed
+        messageInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Handle chat selection
+        chatList.addEventListener("click", (event) => {
+            const selectedChat = event.target.dataset.chat;
+            if (selectedChat) {
+                activeChat = selectedChat;
+                chatMessages.innerHTML = ""; // Clear previous chat messages
+                // You can also load chat history for the selected chat here if available
+            }
+        });
+    </script>
+</body>
+</html>
