@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const chatList = document.getElementById("chatList");
   
     let activeChat = null;
+    let currentCallId = null;
     const chatHistory = {}; // Store chat history for each phone number
   
     // Create a WebSocket connection
@@ -58,6 +59,9 @@ document.addEventListener("DOMContentLoaded", function () {
         listItem.dataset.chat = phoneNumber;
         listItem.addEventListener("click", () => {
           activeChat = phoneNumber;
+          //console.log(chatHistory[phoneNumber]);
+          currentCallId = chatHistory[phoneNumber][1].callId;
+          //console.log(currentCallId);
           displayChatHistory(phoneNumber);
         });
         chatList.appendChild(listItem);
@@ -84,9 +88,25 @@ document.addEventListener("DOMContentLoaded", function () {
       }
   
     // Function to send a message via WebSocket
-    function sendMessage() {
-      // ...
+  function sendMessage() {
+    // Get the message text from the input field
+    const messageText = messageInput.value.trim(); // Remove leading and trailing spaces
+
+    // Check if the message is not empty
+    if (messageText) {
+      const dispatcherMessage = {
+        callId: currentCallId,
+        canChatGPTRespond : false,
+        body: messageText
+      }
+
+      // Send the message to the server as a JSON string
+      socket.send(JSON.stringify(dispatcherMessage));
+
+      // Optionally, clear the input field
+      messageInput.value = "";
     }
+  }
   
     // Send a message when the Send button is clicked
     sendMessageBtn.addEventListener("click", sendMessage);
